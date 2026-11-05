@@ -1,0 +1,661 @@
+<title>Internship Season Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working ledger. Season header + pipeline strip on top, "Up next" rail beside the application list on wide screens, stacked on phones. */
+:root {
+  --bg: #f3f6f5;
+  --surface: #ffffff;
+  --sunken: #e9eeec;
+  --ink: #14201c;
+  --muted: #5a6964;
+  --line: #d6dfdb;
+  --accent: #0d6b59;
+  --accent-ink: #ffffff;
+  --accent-soft: #d8ece6;
+  --mark: #f6dc5c;
+  --mark-ink: #3b3000;
+  --danger: #b4352a;
+  --danger-soft: #f7e1de;
+
+  --s-evaluated: #6b7672; --s-evaluated-bg: #e6ebe9;
+  --s-applied: #2758c9;   --s-applied-bg: #e0e8fa;
+  --s-responded: #6a49c2; --s-responded-bg: #ebe4fa;
+  --s-assessment: #9a6300;--s-assessment-bg: #fbecd0;
+  --s-interview: #0d6b59; --s-interview-bg: #d8ece6;
+  --s-offer: #2c7a1e;     --s-offer-bg: #dcf0d5;
+  --s-rejected: #a33a30;  --s-rejected-bg: #f6e0dd;
+  --s-discarded: #7d8582; --s-discarded-bg: #eceeed;
+
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --r: 8px;
+  --shadow: 0 1px 2px rgb(20 32 28 / 0.06), 0 8px 24px rgb(20 32 28 / 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1513; --surface: #172019; --sunken: #121a17; --ink: #e4ece9; --muted: #95a59f; --line: #2a3632;
+    --accent: #4cc4a9; --accent-ink: #062019; --accent-soft: #163a31; --mark: #5c4f10; --mark-ink: #fbeea8;
+    --danger: #f08a7e; --danger-soft: #3a1d1a;
+    --s-evaluated: #a8b3af; --s-evaluated-bg: #222c29;
+    --s-applied: #8fb0ff;   --s-applied-bg: #1a2644;
+    --s-responded: #bba5f5; --s-responded-bg: #2a2144;
+    --s-assessment: #f1c063;--s-assessment-bg: #3a2c0f;
+    --s-interview: #5fd3b8; --s-interview-bg: #133a31;
+    --s-offer: #8bdc79;     --s-offer-bg: #1b3617;
+    --s-rejected: #f29a90;  --s-rejected-bg: #3d1e1b;
+    --s-discarded: #8d9692; --s-discarded-bg: #1f2624;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1513; --surface: #172019; --sunken: #121a17; --ink: #e4ece9; --muted: #95a59f; --line: #2a3632;
+  --accent: #4cc4a9; --accent-ink: #062019; --accent-soft: #163a31; --mark: #5c4f10; --mark-ink: #fbeea8;
+  --danger: #f08a7e; --danger-soft: #3a1d1a;
+  --s-evaluated: #a8b3af; --s-evaluated-bg: #222c29;
+  --s-applied: #8fb0ff;   --s-applied-bg: #1a2644;
+  --s-responded: #bba5f5; --s-responded-bg: #2a2144;
+  --s-assessment: #f1c063;--s-assessment-bg: #3a2c0f;
+  --s-interview: #5fd3b8; --s-interview-bg: #133a31;
+  --s-offer: #8bdc79;     --s-offer-bg: #1b3617;
+  --s-rejected: #f29a90;  --s-rejected-bg: #3d1e1b;
+  --s-discarded: #8d9692; --s-discarded-bg: #1f2624;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 56px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+.num, time, .mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+.label { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: var(--r); padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: 14px;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 8px; }
+.btn.ghost:hover { color: var(--ink); background: var(--sunken); }
+.btn.danger { color: var(--danger); }
+.btn.danger.solid { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Header */
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.season { display: grid; gap: 4px; min-width: 0; }
+.season h1 { font-size: clamp(28px, 4.2vw, 42px); font-weight: 700; letter-spacing: -0.01em; }
+.season h1 .term { color: var(--accent); }
+.season-edit { background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 4px; color: inherit; font: inherit; }
+.sub { color: var(--muted); font-size: 14px; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Pipeline strip */
+.pipeline { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 14px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.stat { display: grid; gap: 2px; }
+.stat .v { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 15px; color: var(--muted); font-weight: 500; }
+.bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--sunken); gap: 2px; }
+.bar span { display: block; height: 100%; min-width: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+
+/* Main grid */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } .rail { order: -1; } }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 11px; cursor: pointer;
+  font-size: 13px; display: inline-flex; gap: 6px; align-items: center; transition: background-color .15s, border-color .15s;
+}
+.chip .num { color: var(--muted); font-size: 12px; }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip[aria-pressed="true"] .num { color: inherit; opacity: .7; }
+.tools-right { display: flex; gap: 8px; flex-wrap: wrap; }
+.search, .sort {
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 7px 10px; font-size: 14px; min-width: 0;
+}
+.search { width: 190px; max-width: 100%; }
+
+/* Application list */
+.list { display: grid; gap: 8px; }
+.row {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+  display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 150px auto; gap: 14px; align-items: center;
+  transition: border-color .15s;
+}
+.row:hover { border-color: var(--muted); }
+.row.closed { opacity: .72; }
+.row .who { min-width: 0; display: grid; gap: 2px; }
+.row .company { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.row .company a { color: inherit; text-decoration: none; }
+.row .company a:hover { text-decoration: underline; }
+.row .role { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.row .when { display: grid; gap: 2px; font-size: 13px; min-width: 0; }
+.row .when .k { color: var(--muted); }
+.row .acts { display: flex; gap: 2px; }
+.flag { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); padding: 0 6px; border-radius: 4px; }
+.star { color: var(--s-assessment); font-size: 13px; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .row .when { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 14px; flex-wrap: wrap; }
+  .row .stage-wrap { grid-column: 1; grid-row: 3; }
+  .row .acts { grid-column: 2; grid-row: 3; }
+}
+
+.stage-select {
+  appearance: none; -webkit-appearance: none; border: 0; border-radius: 99px; padding: 5px 26px 5px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+  width: 100%; max-width: 150px;
+}
+.due { display: inline-block; padding: 0 6px; border-radius: 4px; font-family: var(--f-data); font-size: 12px; }
+.due.hot { background: var(--mark); color: var(--mark-ink); font-weight: 500; }
+.due.late { background: var(--danger-soft); color: var(--danger); }
+
+/* Rail */
+.rail { display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+.card h2 { font-size: 18px; }
+.upnext { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.upnext li { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: start; }
+.datebox { border: 1px solid var(--line); border-radius: 8px; text-align: center; padding: 4px 0; line-height: 1.1; background: var(--sunken); }
+.datebox .m { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.datebox .d { font-family: var(--f-display); font-size: 20px; font-weight: 700; }
+.datebox.hot { background: var(--mark); border-color: transparent; color: var(--mark-ink); }
+.datebox.hot .m { color: inherit; }
+.upnext .t { font-weight: 700; font-size: 14px; }
+.upnext .s { font-size: 13px; color: var(--muted); }
+.tip { font-size: 13px; color: var(--muted); }
+
+/* States */
+.empty, .notice { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty h3 { font-size: 20px; }
+.empty p, .notice p { margin: 0; color: var(--muted); max-width: 46ch; }
+.banner { background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; font-size: 14px; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.banner.warn { background: var(--danger-soft); color: var(--danger); }
+.skeleton { height: 64px; border-radius: 10px; background: var(--sunken); }
+
+/* Editor dialog */
+dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--ink);
+  width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-shadow: var(--shadow);
+}
+dialog::backdrop { background: rgb(10 16 14 / 0.45); }
+.dlg { display: grid; gap: 16px; padding: 20px; }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.dlg-head h2 { font-size: 22px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.fields .full { grid-column: 1 / -1; }
+@media (max-width: 560px) { .fields { grid-template-columns: minmax(0, 1fr); } }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 700; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea {
+  border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; background: var(--bg); width: 100%; min-width: 0;
+}
+.field textarea { min-height: 84px; resize: vertical; }
+.dlg-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.dlg-foot .r { display: flex; gap: 8px; margin-left: auto; }
+.err { color: var(--danger); font-size: 13px; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 99px; font-size: 14px; box-shadow: var(--shadow);
+  z-index: 50; max-width: calc(100vw - 32px);
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="season">
+      <span class="label">Application season</span>
+      <h1>Internships, <button class="season-edit term" id="seasonBtn" type="button" title="Rename this season">Summer 2027</button></h1>
+      <span class="sub" id="todayLine"></span>
+    </div>
+    <div class="top-actions">
+      <button class="btn primary" id="addBtn" type="button">+ Add application</button>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+
+  <section class="pipeline" aria-label="Pipeline summary">
+    <div class="stats" id="stats"></div>
+    <div class="bar" id="bar" role="img" aria-label="Applications by stage"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <div class="main">
+    <section aria-label="Applications">
+      <div class="toolbar">
+        <div class="chips" id="chips" role="group" aria-label="Filter by stage"></div>
+        <div class="tools-right">
+          <input class="search" id="q" type="search" placeholder="Search company or role" aria-label="Search applications">
+          <select class="sort" id="sort" aria-label="Sort applications">
+            <option value="deadline">Soonest date</option>
+            <option value="updated">Recently updated</option>
+            <option value="company">Company A–Z</option>
+            <option value="stage">Stage</option>
+          </select>
+        </div>
+      </div>
+      <div class="list" id="list">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="card">
+        <h2>Up next</h2>
+        <ul class="upnext" id="upnext"></ul>
+      </div>
+      <div class="card">
+        <h2>Weekly targets</h2>
+        <div class="tip" id="pace"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="dlg" id="form" novalidate>
+    <div class="dlg-head">
+      <h2 id="dlgTitle">Add application</h2>
+      <button class="btn ghost" type="button" id="closeBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="fields">
+      <div class="field"><label for="f-company">Company</label><input id="f-company" name="company" required autocomplete="off" placeholder="e.g. Stripe"></div>
+      <div class="field"><label for="f-role">Role</label><input id="f-role" name="role" required autocomplete="off" placeholder="e.g. Software Engineering Intern"></div>
+      <div class="field"><label for="f-stage">Stage</label><select id="f-stage" name="stage"></select></div>
+      <div class="field"><label for="f-location">Location</label><input id="f-location" name="location" autocomplete="off" placeholder="City, or Remote"></div>
+      <div class="field"><label for="f-deadline">Application deadline</label><input id="f-deadline" name="deadline" type="date"><span class="hint">Leave blank for rolling</span></div>
+      <div class="field"><label for="f-applied">Applied on</label><input id="f-applied" name="appliedOn" type="date"></div>
+      <div class="field"><label for="f-next">Next step</label><input id="f-next" name="nextStep" autocomplete="off" placeholder="e.g. HireVue due, Recruiter call"></div>
+      <div class="field"><label for="f-nextdate">Next step date</label><input id="f-nextdate" name="nextDate" type="date"></div>
+      <div class="field full"><label for="f-link">Posting link</label><input id="f-link" name="link" type="url" autocomplete="off" placeholder="https://"></div>
+      <div class="field"><label for="f-contact">Contact or referral</label><input id="f-contact" name="contact" autocomplete="off" placeholder="Name, how you know them"></div>
+      <div class="field"><label for="f-priority">Priority</label>
+        <select id="f-priority" name="priority"><option value="3">Dream</option><option value="2" selected>Strong fit</option><option value="1">Backup</option></select></div>
+      <div class="field full"><label for="f-notes">Notes</label><textarea id="f-notes" name="notes" placeholder="Interview prep, questions asked, salary, anything to remember"></textarea></div>
+    </div>
+    <div class="err" id="formErr" hidden></div>
+    <div class="dlg-foot">
+      <div id="delZone"></div>
+      <div class="r">
+        <button class="btn" type="button" id="cancelBtn">Cancel</button>
+        <button class="btn primary" type="submit" id="saveBtn">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  // Stage ids match career-ops templates/states.yml so the two can sync.
+  const STAGES = [
+    { id: "evaluated",  label: "To apply",   active: true },
+    { id: "applied",    label: "Applied",    active: true },
+    { id: "responded",  label: "Responded",  active: true },
+    { id: "assessment", label: "Assessment", active: true },
+    { id: "interview",  label: "Interview",  active: true },
+    { id: "offer",      label: "Offer",      active: false },
+    { id: "rejected",   label: "Rejected",   active: false },
+    { id: "discarded",  label: "Withdrew",   active: false },
+  ];
+  const STAGE = Object.fromEntries(STAGES.map((s, i) => [s.id, { ...s, i }]));
+  const SUBMITTED = new Set(["applied", "responded", "assessment", "interview", "offer", "rejected"]);
+  const HEARD_BACK = new Set(["responded", "assessment", "interview", "offer", "rejected"]);
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c)));
+    return n;
+  };
+
+  const state = { apps: [], loaded: false, season: "Summer 2027", filter: "all", q: "", sort: "deadline", editing: null, canWrite: true, db: null };
+
+  try { const s = localStorage.getItem("ist.sort"); if (s) state.sort = s; } catch {}
+  $("sort").value = state.sort;
+
+  // ---- dates ----
+  const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+  const parse = (s) => { if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null; const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+  const daysUntil = (s) => { const d = parse(s); return d ? Math.round((d - today()) / 86400000) : null; };
+  const fmt = (s) => { const d = parse(s); return d ? `${MONTHS[d.getMonth()]} ${d.getDate()}` : ""; };
+  const rel = (n) => n === 0 ? "today" : n === 1 ? "tomorrow" : n === -1 ? "yesterday" : n > 0 ? `in ${n}d` : `${-n}d ago`;
+  const isClosed = (a) => !STAGE[a.stage]?.active;
+  // The one date that matters most right now for a row.
+  const keyDate = (a) => {
+    if (isClosed(a)) return null;
+    if (a.nextDate) return { date: a.nextDate, what: a.nextStep || "Next step" };
+    if (a.stage === "evaluated" && a.deadline) return { date: a.deadline, what: "Deadline" };
+    return null;
+  };
+
+  const t = today();
+  $("todayLine").textContent = `Today is ${t.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}`;
+
+  // ---- toast & banner ----
+  let toastTimer;
+  const toast = (msg) => { const n = $("toast"); n.textContent = msg; n.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => n.hidden = true, 2600); };
+  const banner = (msg, kind = "", action) => {
+    const b = $("banner");
+    if (!msg) { b.hidden = true; b.replaceChildren(); return; }
+    b.className = "banner " + kind; b.hidden = false;
+    b.replaceChildren(el("span", { text: msg }), action || "");
+  };
+
+  // ---- render ----
+  function render() {
+    renderStats(); renderChips(); renderList(); renderUpNext(); renderPace();
+    $("seasonBtn").textContent = state.season;
+    $("addBtn").disabled = !state.canWrite || !state.db;
+  }
+
+  function counts() {
+    const c = Object.fromEntries(STAGES.map(s => [s.id, 0]));
+    for (const a of state.apps) if (c[a.stage] != null) c[a.stage]++;
+    return c;
+  }
+
+  function renderStats() {
+    const c = counts(), apps = state.apps;
+    const submitted = apps.filter(a => SUBMITTED.has(a.stage)).length;
+    const heard = apps.filter(a => HEARD_BACK.has(a.stage)).length;
+    const interviews = apps.filter(a => a.stage === "interview" || a.stage === "offer").length;
+    const rate = submitted ? Math.round((heard / submitted) * 100) : null;
+    const stat = (v, k, extra) => el("div", { class: "stat" }, el("span", { class: "label", text: k }), el("span", { class: "v" }, String(v), extra ? el("small", { text: " " + extra }) : null));
+    $("stats").replaceChildren(
+      stat(apps.length, "Tracked"),
+      stat(c.evaluated, "To apply"),
+      stat(submitted, "Submitted"),
+      stat(rate == null ? "–" : rate + "%", "Heard back", submitted ? `of ${submitted}` : ""),
+      stat(interviews, "Interviews+"),
+      stat(c.offer, "Offers"),
+    );
+    const total = apps.length || 1;
+    $("bar").replaceChildren(...STAGES.filter(s => c[s.id]).map(s =>
+      el("span", { style: `flex:${c[s.id]} 1 0; background: var(--s-${s.id})`, title: `${s.label}: ${c[s.id]}` })));
+    $("bar").setAttribute("aria-label", "Applications by stage: " + STAGES.map(s => `${s.label} ${c[s.id]}`).join(", "));
+    $("legend").replaceChildren(...STAGES.filter(s => c[s.id]).map(s =>
+      el("span", {}, el("i", { style: `background: var(--s-${s.id})` }), `${s.label} `, el("span", { class: "num", text: c[s.id] }))));
+    if (!apps.length) $("legend").replaceChildren(el("span", { text: "Your stages will fill in here as you add applications." }));
+  }
+
+  function renderChips() {
+    const c = counts();
+    const open = state.apps.filter(a => !isClosed(a)).length;
+    const mk = (id, label, n) => el("button", { class: "chip", type: "button", "aria-pressed": String(state.filter === id), onclick: () => { state.filter = id; render(); } }, label, el("span", { class: "num", text: n }));
+    $("chips").replaceChildren(
+      mk("all", "All", state.apps.length),
+      mk("open", "Active", open),
+      ...STAGES.filter(s => c[s.id]).map(s => mk(s.id, s.label, c[s.id])),
+    );
+  }
+
+  function visibleApps() {
+    const q = state.q.trim().toLowerCase();
+    let list = state.apps.filter(a => {
+      if (state.filter === "open" && isClosed(a)) return false;
+      if (state.filter !== "all" && state.filter !== "open" && a.stage !== state.filter) return false;
+      if (q && !(`${a.company} ${a.role} ${a.location}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+    const by = {
+      deadline: (a, b) => {
+        const ka = keyDate(a)?.date || "9999", kb = keyDate(b)?.date || "9999";
+        return (isClosed(a) - isClosed(b)) || ka.localeCompare(kb) || (b.priority - a.priority);
+      },
+      updated: (a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""),
+      company: (a, b) => a.company.localeCompare(b.company),
+      stage: (a, b) => (STAGE[a.stage]?.i ?? 99) - (STAGE[b.stage]?.i ?? 99) || a.company.localeCompare(b.company),
+    };
+    return list.sort(by[state.sort] || by.deadline);
+  }
+
+  function stageSelect(a) {
+    const s = el("select", { class: "stage-select", "aria-label": `Stage for ${a.company}`, style: `background-color: var(--s-${a.stage}-bg); color: var(--s-${a.stage})`, disabled: !state.canWrite,
+      onchange: (e) => changeStage(a, e.target.value) },
+      ...STAGES.map(st => el("option", { value: st.id, selected: st.id === a.stage, text: st.label })));
+    return el("div", { class: "stage-wrap" }, s);
+  }
+
+  function dueChip(dateStr) {
+    const n = daysUntil(dateStr);
+    if (n == null) return null;
+    const cls = n < 0 ? "due late" : n <= 7 ? "due hot" : "due";
+    return el("span", { class: cls, text: `${fmt(dateStr)} · ${rel(n)}` });
+  }
+
+  function renderList() {
+    const list = $("list");
+    if (!state.loaded) return;
+    if (!state.db) {
+      list.replaceChildren(el("div", { class: "notice" }, el("h3", { text: "Sign in to see your applications" }),
+        el("p", { text: "Your tracker is saved to your claude.ai account. Open this page while signed in to load and edit it." })));
+      return;
+    }
+    if (!state.apps.length) {
+      list.replaceChildren(el("div", { class: "empty" },
+        el("h3", { text: "No applications yet" }),
+        el("p", { text: "Add the first internship you plan to apply for. Start with ones that have deadlines coming up, then fill in the rest as recruiting opens." }),
+        state.canWrite ? el("button", { class: "btn primary", type: "button", onclick: () => openEditor(), text: "+ Add application" }) : null));
+      return;
+    }
+    const rows = visibleApps();
+    if (!rows.length) { list.replaceChildren(el("div", { class: "empty" }, el("p", { text: "Nothing matches this filter." }))); return; }
+    list.replaceChildren(...rows.map(a => {
+      const kd = keyDate(a);
+      const name = a.link ? el("a", { href: a.link, target: "_blank", rel: "noopener", text: a.company }) : a.company;
+      const when = el("div", { class: "when" });
+      if (kd) when.append(el("div", {}, el("span", { class: "k", text: kd.what + " " }), dueChip(kd.date)));
+      else if (a.stage === "evaluated") when.append(el("div", { class: "k", text: "Rolling deadline" }));
+      if (a.appliedOn) when.append(el("div", { class: "k" }, "Applied ", el("time", { datetime: a.appliedOn, text: fmt(a.appliedOn) })));
+      if (!when.childNodes.length) when.append(el("div", { class: "k", text: a.location || "" }));
+      return el("article", { class: "row" + (isClosed(a) ? " closed" : "") },
+        el("div", { class: "who" },
+          el("div", { class: "company" }, name,
+            a.priority === 3 ? el("span", { class: "star", title: "Dream company", text: "★" }) : null,
+            a.example ? el("span", { class: "flag", title: "Sample row, safe to delete", text: "Example" }) : null),
+          el("div", { class: "role", text: [a.role, a.location].filter(Boolean).join(" · ") })),
+        when,
+        stageSelect(a),
+        el("div", { class: "acts" },
+          el("button", { class: "btn ghost", type: "button", onclick: () => openEditor(a), disabled: !state.canWrite, text: "Edit", "aria-label": `Edit ${a.company}` })));
+    }));
+  }
+
+  function renderUpNext() {
+    const ul = $("upnext");
+    const items = state.apps.map(a => ({ a, kd: keyDate(a) })).filter(x => x.kd && daysUntil(x.kd.date) >= -3)
+      .sort((x, y) => x.kd.date.localeCompare(y.kd.date)).slice(0, 6);
+    if (!items.length) {
+      ul.replaceChildren(el("li", { class: "tip", style: "display:block", text: state.apps.length ? "No dates coming up. Add a deadline or next-step date to an application and it shows here." : "Deadlines and interview dates show here, soonest first." }));
+      return;
+    }
+    ul.replaceChildren(...items.map(({ a, kd }) => {
+      const d = parse(kd.date), n = daysUntil(kd.date);
+      return el("li", {},
+        el("div", { class: "datebox" + (n <= 3 ? " hot" : "") }, el("div", { class: "m", text: MONTHS[d.getMonth()] }), el("div", { class: "d", text: d.getDate() })),
+        el("div", {}, el("div", { class: "t", text: `${kd.what}: ${a.company}` }), el("div", { class: "s", text: `${a.role} · ${rel(n)}` })));
+    }));
+  }
+
+  function renderPace() {
+    const start = new Date(today()); start.setDate(start.getDate() - ((start.getDay() + 6) % 7)); // Monday
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const s = iso(start);
+    const thisWeek = state.apps.filter(a => a.appliedOn && a.appliedOn >= s).length;
+    const goal = 5;
+    const pct = Math.min(100, Math.round((thisWeek / goal) * 100));
+    $("pace").replaceChildren(
+      el("div", { style: "display:flex;justify-content:space-between;align-items:baseline;gap:8px" },
+        el("span", {}, "Submitted since Monday"), el("span", { class: "num", style: "font-size:18px;color:var(--ink);font-weight:500", text: `${thisWeek} / ${goal}` })),
+      el("div", { class: "bar", style: "margin-top:8px" }, el("span", { style: `width:${pct}%;background:var(--accent)` })),
+      el("p", { style: "margin:10px 0 0", text: thisWeek >= goal ? "Target hit for this week. Spend the rest on prep and follow-ups." : `${goal - thisWeek} more to hit this week's target of ${goal}.` }));
+  }
+
+  // ---- editor ----
+  const dlg = $("dlg"), form = $("form");
+  $("f-stage").replaceChildren(...STAGES.map(s => el("option", { value: s.id, text: s.label })));
+
+  function openEditor(a = null) {
+    if (!state.canWrite) return;
+    state.editing = a;
+    form.reset();
+    $("formErr").hidden = true;
+    $("dlgTitle").textContent = a ? `Edit ${a.company}` : "Add application";
+    const v = a || { stage: "evaluated", priority: 2 };
+    for (const f of form.elements) if (f.name && v[f.name] != null) f.value = v[f.name];
+    $("delZone").replaceChildren(a ? el("button", { class: "btn danger", type: "button", onclick: askDelete, text: "Delete" }) : "");
+    dlg.showModal();
+    setTimeout(() => $("f-company").focus(), 0);
+  }
+  function askDelete() {
+    $("delZone").replaceChildren(el("span", { style: "font-size:13px;margin-right:8px", text: "Delete for good?" }),
+      el("button", { class: "btn danger solid", type: "button", onclick: doDelete, text: "Yes, delete" }),
+      el("button", { class: "btn ghost", type: "button", onclick: () => openEditor(state.editing), text: "Keep" }));
+  }
+  async function doDelete() {
+    const a = state.editing; if (!a) return;
+    try { await state.db.collection("applications").doc(a.id).delete(); dlg.close(); toast(`Deleted ${a.company}`); }
+    catch (e) { showErr(e); }
+  }
+  const close = () => dlg.close();
+  $("closeBtn").addEventListener("click", close);
+  $("cancelBtn").addEventListener("click", close);
+
+  function showErr(e) {
+    const n = $("formErr"); n.hidden = false;
+    n.textContent = e?.code === "quota_exceeded" ? "The tracker is full. Delete some old applications, then try again."
+      : e?.code === "invalid_argument" ? "You can view this tracker but not change it. Ask the owner for edit access."
+      : "Couldn't save just now. Check your connection and try again.";
+    if (e?.code === "invalid_argument") { state.canWrite = false; }
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = {};
+    for (const [k, v] of fd.entries()) data[k] = String(v).trim();
+    if (!data.company || !data.role) { const n = $("formErr"); n.hidden = false; n.textContent = "Add a company and a role to save."; return; }
+    if (data.link && !/^https?:\/\//i.test(data.link)) data.link = "https://" + data.link;
+    data.priority = Number(data.priority) || 2;
+    if (SUBMITTED.has(data.stage) && !data.appliedOn && !(state.editing?.appliedOn)) data.appliedOn = isoToday();
+    data.updatedAt = new Date().toISOString();
+    $("saveBtn").disabled = true;
+    try {
+      const col = state.db.collection("applications");
+      if (state.editing) {
+        await col.doc(state.editing.id).set({ ...stripMeta(state.editing), ...data, example: false });
+        toast(`Saved ${data.company}`);
+      } else {
+        await col.add({ ...data, createdAt: data.updatedAt, example: false });
+        toast(`Added ${data.company}`);
+      }
+      dlg.close();
+    } catch (err) { showErr(err); }
+    finally { $("saveBtn").disabled = false; }
+  });
+
+  const isoToday = () => { const d = today(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+  const stripMeta = (a) => { const { id, ...rest } = a; return rest; };
+
+  async function changeStage(a, stage) {
+    const patch = { stage, updatedAt: new Date().toISOString() };
+    if (SUBMITTED.has(stage) && !a.appliedOn) patch.appliedOn = isoToday();
+    try { await state.db.collection("applications").doc(a.id).update(patch); toast(`${a.company} moved to ${STAGE[stage].label}`); }
+    catch (e) { toast(e?.code === "invalid_argument" ? "You don't have edit access to this tracker." : "Couldn't update. Try again."); render(); }
+  }
+
+  // ---- season name ----
+  $("seasonBtn").addEventListener("click", () => {
+    if (!state.canWrite || !state.db) return;
+    const h1 = $("seasonBtn").parentElement;
+    const input = el("input", { id: "seasonInput", value: state.season, "aria-label": "Season name", class: "search", style: "font:inherit;width:9em;padding:2px 8px" });
+    const btn = $("seasonBtn"); btn.replaceWith(input); input.focus(); input.select();
+    let done = false;
+    const commit = async (save) => {
+      if (done) return; done = true;
+      const v = input.value.trim().slice(0, 40);
+      input.replaceWith(btn);
+      if (save && v && v !== state.season) {
+        state.season = v; render();
+        try { await state.db.doc("settings/season").set({ name: v }); } catch { toast("Couldn't rename the season."); }
+      }
+    };
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(true); if (e.key === "Escape") commit(false); });
+    input.addEventListener("blur", () => commit(true));
+  });
+
+  // ---- controls ----
+  $("addBtn").addEventListener("click", () => openEditor());
+  let qTimer;
+  $("q").addEventListener("input", (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value; renderList(); }, 120); });
+  $("sort").addEventListener("change", (e) => { state.sort = e.target.value; try { localStorage.setItem("ist.sort", state.sort); } catch {} renderList(); });
+
+  render();
+
+  // ---- data ----
+  (async () => {
+    const [db, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
+    state.db = db;
+    if (!db) { state.loaded = true; render(); return; }
+    if (user) {
+      try { const can = await user.can("data.write"); if (can === false) state.canWrite = false; } catch {}
+    }
+    let gotFresh = false;
+    const timer = setTimeout(() => { if (!gotFresh) { state.loaded = true; banner(state.apps.length ? "Showing saved data. It may be out of date until the connection comes back." : "Can't reach your tracker yet. It will load when the connection comes back.", "warn"); render(); } }, 10000);
+    db.collection("applications").onSnapshot((snap) => {
+      state.apps = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(a => a.company);
+      state.loaded = true;
+      if (!snap.metadata.fromCache) { gotFresh = true; clearTimeout(timer); banner(null); }
+      const ex = state.apps.filter(a => a.example);
+      if (ex.length && state.canWrite) banner(`${ex.length} example applications are filled in so you can see how it works.`, "",
+        el("button", { class: "btn", type: "button", onclick: clearExamples, text: "Clear examples" }));
+      render();
+    }, (e) => { clearTimeout(timer); state.loaded = true; banner("Your tracker stopped syncing. Reload the page to reconnect.", "warn"); render(); });
+    db.doc("settings/season").onSnapshot((snap) => { const n = snap.exists && snap.data().name; if (n) { state.season = String(n); render(); } }, () => {});
+  })();
+
+  async function clearExamples() {
+    const ex = state.apps.filter(a => a.example);
+    for (const a of ex) { try { await state.db.collection("applications").doc(a.id).delete(); } catch {} }
+    toast(`Cleared ${ex.length} examples`);
+  }
+})();
+</script>
