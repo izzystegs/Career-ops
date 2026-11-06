@@ -465,8 +465,15 @@ dialog::backdrop { background: rgb(10 16 14 / 0.45); }
     const list = $("list");
     if (!state.loaded) return;
     if (!state.db) {
-      list.replaceChildren(el("div", { class: "notice" }, el("h3", { text: "Sign in to see your applications" }),
-        el("p", { text: "Your tracker is saved to your claude.ai account. Open this page while signed in to load and edit it." })));
+      const denied = state.dbPerm === "denied";
+      const home = "https://claude.ai/artifact/S1yNEgKWczBLdVptb5prWa";
+      list.replaceChildren(el("div", { class: "notice" },
+        el("h3", { text: denied ? "Saving is switched off for this page" : "Your saved applications can't load here" }),
+        el("p", { text: denied
+          ? "This page needs permission to use its storage. Turn it back on in the page's Permissions settings, then reload."
+          : "Your tracker is stored in your claude.ai account, so it only loads inside the claude.ai page viewer while you're signed in. Opened as a plain web page or in a preview, it can't reach that storage." }),
+        denied && state.perms ? el("button", { class: "btn primary", type: "button", onclick: async () => { try { await state.perms.manage(); location.reload(); } catch { toast("Open the Permissions menu at the top of this page."); } }, text: "Open permissions" }) : null,
+        el("p", {}, "Open it at ", el("a", { href: home, target: "_blank", rel: "noopener", text: "claude.ai/artifact/S1yNEgKWczBLdVptb5prWa" }), " in a browser where you're signed in.")));
       return;
     }
     if (!state.apps.length) {
@@ -634,7 +641,10 @@ dialog::backdrop { background: rgb(10 16 14 / 0.45); }
   (async () => {
     const [db, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
     state.db = db;
-    if (!db) { state.loaded = true; render(); return; }
+    if (!db) {
+      try { state.perms = await window.claude?.use?.("permissions"); state.dbPerm = state.perms ? await state.perms.state("db") : null; } catch {}
+      state.loaded = true; render(); return;
+    }
     if (user) {
       try { const can = await user.can("data.write"); if (can === false) state.canWrite = false; } catch {}
     }
